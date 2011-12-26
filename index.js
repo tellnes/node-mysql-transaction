@@ -25,6 +25,12 @@ Transaction.prototype.rollback = function(cb) {
   this.client.query('ROLLBACK', makeFinishCb(this, cb));
 };
 
+['query', 'format', 'escape', 'ping', 'useDatabase', 'statistics'].forEach(function(key) {
+  Transaction.prototype[key] = function() {
+    this.client[key].apply(this.client, arguments);
+  };
+});
+
 MySQLTransaction = function(properties) {
   if(!(this instanceof MySQLTransaction)) {
 		return new MySQLTransaction(properties);
