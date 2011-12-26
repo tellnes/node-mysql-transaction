@@ -1,6 +1,6 @@
-var MySQLPool = require("mysql-pool").MySQLPool;
-
-var util = require("util");
+var MySQLPool = require("mysql-pool").MySQLPool
+  , util = require("util")
+  ;
 
 
 function Transaction(pool, client) {
@@ -35,9 +35,10 @@ MySQLTransaction = function(properties) {
   if(!(this instanceof MySQLTransaction)) {
 		return new MySQLTransaction(properties);
 	}
-	
-	MySQLPool.call(this, properties);
+
 	this._poolAvail = MySQLPool.prototype._avail.bind(this);
+
+	MySQLPool.call(this, properties);
 }
 util.inherits(MySQLTransaction, MySQLPool);
 exports.MySQLTransaction = MySQLTransaction;
