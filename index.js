@@ -36,7 +36,7 @@ MySQLTransaction = function(properties) {
 util.inherits(MySQLTransaction, MySQLPool);
 exports.MySQLTransaction = MySQLTransaction;
 
-MySQLTransaction.prototype.createClient = function createClient(options) {
+exports.createClient = MySQLTransaction.prototype.createClient = function createClient(options) {
 	return new MySQLTransaction(options);
 };
 
