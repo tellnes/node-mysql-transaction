@@ -1,0 +1,17 @@
+{
+  "author": "Christian Tellnes <christian@tellnes.no>",
+  "name": "mysql-transaction",
+  "description": "Node MySQL Transaction",
+  "version": "0.0.0",
+  "repository": {
+    "url": ""
+  },
+  "main": "index.js",
+  "engines": {
+    "node": "~0.6.6"
+  },
+  "dependencies": {
+    "mysql-pool": "0.2.x"
+  },
+  "devDependencies": {}
+}
