@@ -33,18 +33,18 @@ Transaction.prototype.rollback = function(cb) {
 
 MySQLTransaction = function(properties) {
   if(!(this instanceof MySQLTransaction)) {
-		return new MySQLTransaction(properties);
-	}
+    return new MySQLTransaction(properties);
+  }
 
-	this._poolAvail = MySQLPool.prototype._avail.bind(this);
+  this._poolAvail = MySQLPool.prototype._avail.bind(this);
 
-	MySQLPool.call(this, properties);
+  MySQLPool.call(this, properties);
 }
 util.inherits(MySQLTransaction, MySQLPool);
 exports.MySQLTransaction = MySQLTransaction;
 
 exports.createClient = MySQLTransaction.prototype.createClient = function createClient(options) {
-	return new MySQLTransaction(options);
+  return new MySQLTransaction(options);
 };
 
 
@@ -56,13 +56,13 @@ MySQLTransaction.prototype._avail = function _avail(client) {
 
 MySQLTransaction.prototype.transaction = function(cb) {
   var client = this._idleQueue.shift();
-	if(!client) {
-		pool._todoQueue.push({method:wrapperMethod, args:args});
-		return pool;
-	}
+  if(!client) {
+    pool._todoQueue.push({method:wrapperMethod, args:args});
+    return pool;
+  }
 
   var trans = new Transaction(this, client);
   client.query('START TRANSACTION', function(err) {
-	  cb(err, trans);
-	});
+    cb(err, trans);
+  });
 };
