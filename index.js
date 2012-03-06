@@ -1,68 +1,74 @@
-var MySQLPool = require("mysql-pool").MySQLPool
-  , util = require("util")
+var MySQLClient = require('mysql').Client
+  , util = require('util')
+  , hashish = require('hashish')
   ;
 
 
-function Transaction(pool, client) {
-  this.pool = pool;
+function Transaction(client) {
   this.client = client;
-  client._transaction = true;
 }
 
-function makeFinishCb(that, cb) {
+function makeFinishCb(client, cb) {
   return function (err) {
-    that.client._transaction = false;
-    that.pool._poolAvail(that.client);
-    cb && cb(err);
+    if (cb) { cb(err); }
+    client._isTransaction = false;
+    client._flush();
   };
 }
 
 Transaction.prototype.commit = function(cb) {
-  this.client.query('COMMIT', makeFinishCb(this, cb));
+  this.query('COMMIT', makeFinishCb(this.client, cb));
 };
 
 Transaction.prototype.rollback = function(cb) {
-  this.client.query('ROLLBACK', makeFinishCb(this, cb));
+  this.query('ROLLBACK', makeFinishCb(this.client, cb));
 };
 
-['query', 'format', 'escape', 'ping', 'useDatabase', 'statistics'].forEach(function(key) {
+Transaction.prototype.query = function() {
+  MySQLClient.prototype.query.apply(this.client, arguments);
+};
+
+['format', 'escape', 'ping', 'useDatabase', 'statistics'].forEach(function(key) {
   Transaction.prototype[key] = function() {
     this.client[key].apply(this.client, arguments);
   };
 });
 
-MySQLTransaction = function(properties) {
-  if(!(this instanceof MySQLTransaction)) {
-    return new MySQLTransaction(properties);
-  }
-
-  this._poolAvail = MySQLPool.prototype._avail.bind(this);
-
-  MySQLPool.call(this, properties);
+function Client() {
+  MySQLClient.call(this);
+  this._queryQueue = [];
+  this._isTransaction = false;
 }
-util.inherits(MySQLTransaction, MySQLPool);
-exports.MySQLTransaction = MySQLTransaction;
+util.inherits(Client, MySQLClient);
+exports.Client = Client;
 
-exports.createClient = MySQLTransaction.prototype.createClient = function createClient(options) {
-  return new MySQLTransaction(options);
+exports.createClient = function createClient(config) {
+  var client = new Client();
+  hashish.update(client, config || {});
+  return client;
 };
 
 
-MySQLTransaction.prototype._avail = function _avail(client) {
-  if (!client._transaction) {
-    this._poolAvail(client);
-  }
+Client.prototype._flush = function() {
+  if (this._isTransaction) { return; }
+  var args = this._queryQueue.shift();
+  if (!args) { return; }
+  MySQLClient.prototype.query.apply(this, args);
+  this._flush();
 };
 
-MySQLTransaction.prototype.transaction = function(cb) {
-  var client = this._idleQueue.shift();
-  if(!client) {
-    pool._todoQueue.push({method:wrapperMethod, args:args});
-    return pool;
-  }
-
-  var trans = new Transaction(this, client);
-  client.query('START TRANSACTION', function(err) {
+Client.prototype.transaction = function(cb) {
+  var trans = new Transaction(this);
+  this.query('START TRANSACTION', function(err) {
     cb(err, trans);
   });
+  this._isTransaction = true;
+};
+
+Client.prototype.query = function() {
+  if (this._isTransaction) {
+    this._queryQueue.push(arguments);
+  } else {
+    MySQLClient.prototype.query.apply(this, arguments);
+  }
 };
